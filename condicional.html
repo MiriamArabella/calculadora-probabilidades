@@ -5,49 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Probabilidad Condicional</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <script type="module">
-    import { toNumber, pA_givenB, pB_givenA, isIndependent } from "./app.js?v=4";
-
-    // Cálculo directo de P(A|B), P(B|A)
-    window.calc = () => {
-      const pA = toNumber(document.getElementById("pA").value);
-      const pB = toNumber(document.getElementById("pB").value);
-      const pAB = toNumber(document.getElementById("pAB").value);
-
-      const pAgB = pA_givenB(pAB, pB);
-      const pBgA = pB_givenA(pAB, pA);
-      const indep = isIndependent(pA, pB, pAB) ? "Sí" : "No";
-
-      document.getElementById("out").innerHTML = `
-        <p><b>P(A|B)</b> = ${pAgB.toFixed(6)}</p>
-        <p><b>P(B|A)</b> = ${pBgA.toFixed(6)}</p>
-        <p><b>¿A y B independientes?</b> ${indep}</p>
-      `;
-    };
-
-    // Cálculo desde tabla 2x2
-    window.calcTabla = ()=>{
-      const nAB = toNumber(document.getElementById("nAB").value);
-      const nA_noB = toNumber(document.getElementById("nA_noB").value);
-      const nNoA_B = toNumber(document.getElementById("nNoA_B").value);
-      const nNoA_noB = toNumber(document.getElementById("nNoA_noB").value);
-      const N = nAB + nA_noB + nNoA_B + nNoA_noB;
-
-      const pA = (nAB + nA_noB)/N, pB = (nAB + nNoA_B)/N, pAB = nAB/N;
-      const pAgB = pA_givenB(pAB, pB);
-      const pBgA = pB_givenA(pAB, pA);
-
-      document.getElementById("outTabla").innerHTML = `
-        <p>N = ${N}</p>
-        <p>P(A) = ${pA.toFixed(3)}, P(B) = ${pB.toFixed(3)}, P(A∩B) = ${pAB.toFixed(3)}</p>
-        <p>P(A|B) = ${pAgB.toFixed(6)}, P(B|A) = ${pBgA.toFixed(6)}</p>
-      `;
-    };
-  </script>
 </head>
 
 <body class="bg-gray-50 text-gray-800">
+<body style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);"></body>
   <header class="bg-indigo-600 text-white">
     <div class="max-w-5xl mx-auto p-5">
       <h1 class="text-2xl md:text-3xl font-bold">Probabilidad Condicional y Dependencia</h1>
@@ -65,17 +26,17 @@
   </nav>
 
   <main class="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-6">
-    <!-- Sección 1: Teoría -->
+    <!-- Teoría -->
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-xl font-semibold mb-3">Teoría breve</h2>
       <ul class="list-disc pl-6 text-sm space-y-1">
-        <li><b>P(A|B) = P(A∩B) / P(B)</b>, con P(B)>0</li>
-        <li><b>P(B|A) = P(A∩B) / P(A)</b>, con P(A)>0</li>
+        <li><b>P(A|B) = P(A∩B) / P(B)</b>, con P(B)&gt;0</li>
+        <li><b>P(B|A) = P(A∩B) / P(A)</b>, con P(A)&gt;0</li>
         <li><b>Independencia:</b> P(A∩B) = P(A)P(B)</li>
       </ul>
     </section>
 
-    <!-- Sección 2: Cálculo directo -->
+    <!-- Cálculo directo -->
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-xl font-semibold mb-3">Cálculo directo</h2>
       <div class="grid grid-cols-3 gap-3">
@@ -93,7 +54,7 @@
       <div id="out" class="mt-4 text-sm"></div>
     </section>
 
-    <!-- Sección 3: Aplicación con tabla -->
+    <!-- Tabla 2x2 -->
     <section class="bg-white rounded-2xl shadow p-6 md:col-span-2">
       <h2 class="text-xl font-semibold mb-3">Aplicación con tabla (conteos)</h2>
       <p class="text-sm mb-3">Ingresa conteos:</p>
@@ -115,23 +76,68 @@
       <div id="outTabla" class="mt-4 text-sm"></div>
     </section>
   </main>
+
+  <!-- UN SOLO SCRIPT (módulo) -->
+  <script type="module">
+    import { toNumber, pA_givenB, pB_givenA, isIndependent } from "./app.js?v=6";
+
+    // Util: valida que 0<=p<=1
+    const in01 = (p) => p >= 0 && p <= 1;
+
+    // Cálculo directo
+    window.calc = () => {
+      const pA  = toNumber(document.getElementById("pA").value);
+      const pB  = toNumber(document.getElementById("pB").value);
+      const pAB = toNumber(document.getElementById("pAB").value);
+
+      // Validaciones suaves para evitar entradas imposibles
+      let err = "";
+      if (!in01(pA) || !in01(pB) || !in01(pAB)) err = "Todas las probabilidades deben estar entre 0 y 1.";
+      if (pAB > Math.min(pA, pB)) err = "P(A∩B) no puede ser mayor que min(P(A), P(B)).";
+      if (pA === 0 || pB === 0) err = "P(A) y P(B) deben ser mayores que 0 para condicionales.";
+
+      if (err) {
+        document.getElementById("out").innerHTML = `<p class="text-red-600">${err}</p>`;
+        return;
+      }
+
+      const pAgB = pA_givenB(pAB, pB);
+      const pBgA = pB_givenA(pAB, pA);
+      const indep = isIndependent(pA, pB, pAB) ? "Sí" : "No";
+
+      document.getElementById("out").innerHTML = `
+        <p><b>P(A|B)</b> = ${pAgB.toFixed(6)}</p>
+        <p><b>P(B|A)</b> = ${pBgA.toFixed(6)}</p>
+        <p><b>¿A y B independientes?</b> ${indep}</p>
+      `;
+    };
+
+    // Cálculo desde tabla 2×2
+    window.calcTabla = () => {
+      const nAB      = toNumber(document.getElementById("nAB").value);
+      const nA_noB   = toNumber(document.getElementById("nA_noB").value);
+      const nNoA_B   = toNumber(document.getElementById("nNoA_B").value);
+      const nNoA_noB = toNumber(document.getElementById("nNoA_noB").value);
+
+      const N   = nAB + nA_noB + nNoA_B + nNoA_noB;
+      if (N <= 0) {
+        document.getElementById("outTabla").innerHTML = `<p class="text-red-600">La suma de conteos debe ser &gt; 0.</p>`;
+        return;
+      }
+
+      const pA  = (nAB + nA_noB) / N;
+      const pB  = (nAB + nNoA_B) / N;
+      const pAB = nAB / N;
+
+      const pAgB = pA_givenB(pAB, pB);
+      const pBgA = pB_givenA(pAB, pA);
+
+      document.getElementById("outTabla").innerHTML = `
+        <p>N = ${N}</p>
+        <p>P(A) = ${pA.toFixed(3)}, P(B) = ${pB.toFixed(3)}, P(A∩B) = ${pAB.toFixed(3)}</p>
+        <p>P(A|B) = ${pAgB.toFixed(6)}, P(B|A) = ${pBgA.toFixed(6)}</p>
+      `;
+    };
+  </script>
 </body>
-<script type="module">
-  import { toNumber, pA_givenB, pB_givenA } from "./app.js?v=5";
-
-  window.calcTabla = ()=>{
-    const nAB = toNumber(document.getElementById("nAB").value);
-    const nA_noB = toNumber(document.getElementById("nA_noB").value);
-    const nNoA_B = toNumber(document.getElementById("nNoA_B").value);
-    const nNoA_noB = toNumber(document.getElementById("nNoA_noB").value);
-    const N = nAB + nA_noB + nNoA_B + nNoA_noB;
-    const pA = (nAB + nA_noB)/N, pB = (nAB + nNoA_B)/N, pAB = nAB/N;
-    const pAgB = pA_givenB(pAB, pB);
-    const pBgA = pB_givenA(pAB, pA);
-    document.getElementById("outTabla").innerHTML =
-      `<p>N=${N}. P(A)=${pA.toFixed(3)}, P(B)=${pB.toFixed(3)}, P(A∩B)=${pAB.toFixed(3)}</p>
-       <p>P(A|B)=${pAgB.toFixed(6)}, P(B|A)=${pBgA.toFixed(6)}</p>`;
-  };
-</script>
-
 </html>
