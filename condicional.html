@@ -4,18 +4,22 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Probabilidad Condicional</title>
+
+  <!-- Estilos y librerías -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="bg-gray-50 text-gray-800">
-<body style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);"></body>
+<body class="text-gray-800" style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);">
+  <!-- Encabezado -->
   <header class="bg-indigo-600 text-white">
     <div class="max-w-5xl mx-auto p-5">
       <h1 class="text-2xl md:text-3xl font-bold">Probabilidad Condicional y Dependencia</h1>
-      <p>Aplicación del teorema P(A|B) y revisión de independencia.</p>
+      <p class="opacity-90">Aplicación del teorema P(A|B) y revisión de independencia.</p>
     </div>
   </header>
 
+  <!-- Menú -->
   <nav class="bg-white border-b">
     <div class="max-w-5xl mx-auto p-3 flex flex-wrap gap-2">
       <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./index.html">Inicio</a>
@@ -25,6 +29,7 @@
     </div>
   </nav>
 
+  <!-- Contenido -->
   <main class="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-6">
     <!-- Teoría -->
     <section class="bg-white rounded-2xl shadow p-6">
@@ -41,56 +46,79 @@
       <h2 class="text-xl font-semibold mb-3">Cálculo directo</h2>
       <div class="grid grid-cols-3 gap-3">
         <label class="text-sm">P(A)
-          <input id="pA" type="number" step="0.01" value="0.3" class="w-full mt-1 border rounded p-2">
+          <input id="pA" type="number" step="0.000001" value="0.3" class="w-full mt-1 border rounded p-2" />
         </label>
         <label class="text-sm">P(B)
-          <input id="pB" type="number" step="0.01" value="0.4" class="w-full mt-1 border rounded p-2">
+          <input id="pB" type="number" step="0.000001" value="0.4" class="w-full mt-1 border rounded p-2" />
         </label>
         <label class="text-sm">P(A∩B)
-          <input id="pAB" type="number" step="0.01" value="0.12" class="w-full mt-1 border rounded p-2">
+          <input id="pAB" type="number" step="0.000001" value="0.12" class="w-full mt-1 border rounded p-2" />
         </label>
       </div>
       <button onclick="calc()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular</button>
       <div id="out" class="mt-4 text-sm"></div>
+      <!-- Gráfica de cálculo directo -->
+      <canvas id="chartDirect" class="mt-4"></canvas>
     </section>
 
-    <!-- Tabla 2x2 -->
+    <!-- Tabla 2×2 -->
     <section class="bg-white rounded-2xl shadow p-6 md:col-span-2">
       <h2 class="text-xl font-semibold mb-3">Aplicación con tabla (conteos)</h2>
       <p class="text-sm mb-3">Ingresa conteos:</p>
       <div class="grid grid-cols-4 gap-3">
         <label class="text-sm">A∩B
-          <input id="nAB" type="number" value="30" class="w-full mt-1 border rounded p-2">
+          <input id="nAB" type="number" value="30" class="w-full mt-1 border rounded p-2" />
         </label>
         <label class="text-sm">A∩¬B
-          <input id="nA_noB" type="number" value="20" class="w-full mt-1 border rounded p-2">
+          <input id="nA_noB" type="number" value="20" class="w-full mt-1 border rounded p-2" />
         </label>
         <label class="text-sm">¬A∩B
-          <input id="nNoA_B" type="number" value="10" class="w-full mt-1 border rounded p-2">
+          <input id="nNoA_B" type="number" value="10" class="w-full mt-1 border rounded p-2" />
         </label>
         <label class="text-sm">¬A∩¬B
-          <input id="nNoA_noB" type="number" value="40" class="w-full mt-1 border rounded p-2">
+          <input id="nNoA_noB" type="number" value="40" class="w-full mt-1 border rounded p-2" />
         </label>
       </div>
       <button onclick="calcTabla()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular desde tabla</button>
       <div id="outTabla" class="mt-4 text-sm"></div>
+      <!-- Gráfica de tabla -->
+      <canvas id="chartTabla" class="mt-4"></canvas>
     </section>
   </main>
 
-  <!-- UN SOLO SCRIPT (módulo) -->
-  <script type="module">
-    import { toNumber, pA_givenB, pB_givenA, isIndependent } from "./app.js?v=6";
+  <!-- Librería global con funciones (toNumber, pA_givenB, etc.) -->
+  <script src="./condicional-lib.js"></script>
 
-    // Util: valida que 0<=p<=1
+  <!-- Lógica de la página + gráficas -->
+  <script>
     const in01 = (p) => p >= 0 && p <= 1;
 
-    // Cálculo directo
-    window.calc = () => {
+    // ===== helpers para chart =====
+    let chartDirect = null;
+    let chartTabla  = null;
+
+    function renderChart(ctx, labels, values, which) {
+      const data = {
+        labels,
+        datasets: [{ label: "Probabilidades", data: values }]
+      };
+      const options = {
+        responsive: true,
+        scales: { y: { beginAtZero: true, max: 1 } }
+      };
+      if (which === "direct" && chartDirect) chartDirect.destroy();
+      if (which === "tabla"  && chartTabla)  chartTabla.destroy();
+      const c = new Chart(ctx, { type: "bar", data, options });
+      if (which === "direct") chartDirect = c;
+      if (which === "tabla")  chartTabla  = c;
+    }
+
+    // ===== cálculo directo =====
+    function calc() {
       const pA  = toNumber(document.getElementById("pA").value);
       const pB  = toNumber(document.getElementById("pB").value);
       const pAB = toNumber(document.getElementById("pAB").value);
 
-      // Validaciones suaves para evitar entradas imposibles
       let err = "";
       if (!in01(pA) || !in01(pB) || !in01(pAB)) err = "Todas las probabilidades deben estar entre 0 y 1.";
       if (pAB > Math.min(pA, pB)) err = "P(A∩B) no puede ser mayor que min(P(A), P(B)).";
@@ -110,16 +138,23 @@
         <p><b>P(B|A)</b> = ${pBgA.toFixed(6)}</p>
         <p><b>¿A y B independientes?</b> ${indep}</p>
       `;
-    };
 
-    // Cálculo desde tabla 2×2
-    window.calcTabla = () => {
+      const ctx = document.getElementById("chartDirect").getContext("2d");
+      renderChart(ctx,
+        ["P(A)", "P(B)", "P(A∩B)", "P(A|B)", "P(B|A)"],
+        [pA, pB, pAB, pAgB, pBgA],
+        "direct"
+      );
+    }
+
+    // ===== cálculo desde tabla =====
+    function calcTabla() {
       const nAB      = toNumber(document.getElementById("nAB").value);
       const nA_noB   = toNumber(document.getElementById("nA_noB").value);
       const nNoA_B   = toNumber(document.getElementById("nNoA_B").value);
       const nNoA_noB = toNumber(document.getElementById("nNoA_noB").value);
 
-      const N   = nAB + nA_noB + nNoA_B + nNoA_noB;
+      const N = nAB + nA_noB + nNoA_B + nNoA_noB;
       if (N <= 0) {
         document.getElementById("outTabla").innerHTML = `<p class="text-red-600">La suma de conteos debe ser &gt; 0.</p>`;
         return;
@@ -137,7 +172,18 @@
         <p>P(A) = ${pA.toFixed(3)}, P(B) = ${pB.toFixed(3)}, P(A∩B) = ${pAB.toFixed(3)}</p>
         <p>P(A|B) = ${pAgB.toFixed(6)}, P(B|A) = ${pBgA.toFixed(6)}</p>
       `;
-    };
+
+      const ctx = document.getElementById("chartTabla").getContext("2d");
+      renderChart(ctx,
+        ["P(A)", "P(B)", "P(A∩B)", "P(A|B)", "P(B|A)"],
+        [pA, pB, pAB, pAgB, pBgA],
+        "tabla"
+      );
+    }
+
+    // Para los botones inline
+    window.calc = calc;
+    window.calcTabla = calcTabla;
   </script>
 </body>
 </html>
