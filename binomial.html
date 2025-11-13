@@ -3,97 +3,163 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Distribución Binomial</title>
+  <title>Distribución Normal (Z)</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Lógica de la página -->
   <script type="module">
-    import { nCr, binomialPMF, toNumber } from "./app.js";
+    import { toNumber, normalCDF, normalBetween } from "./app.js?v=2";
     let chart;
 
-    function renderChart(labels, data){
+    // Densidad normal
+    function normalPDF(x, mu, sigma){
+      const z = (x - mu)/sigma;
+      return Math.exp(-0.5*z*z) / (sigma*Math.sqrt(2*Math.PI));
+    }
+
+    function render(mu, sigma, a, b){
       const ctx = document.getElementById("chart").getContext("2d");
       if(chart) chart.destroy();
+
+      // Rango μ ± 4σ
+      const xMin = mu - 4*sigma, xMax = mu + 4*sigma, steps = 200;
+      const xs = [], f = [], fShade = [];
+
+      for(let i=0;i<=steps;i++){
+        const x = xMin + (i/steps)*(xMax - xMin);
+        const y = normalPDF(x, mu, sigma);
+        xs.push(Number(x.toFixed(2)));
+        f.push(Number(y.toFixed(6)));
+
+        // sombreado entre a y b
+        fShade.push((x>=a && x<=b) ? Number(y.toFixed(6)) : null);
+      }
+
       chart = new Chart(ctx, {
-        type: "bar",
-        data: { labels, datasets: [{ label: "P(X = x)", data }] },
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        type: "line",
+        data: {
+          labels: xs,
+          datasets: [
+            {
+              label: "f(x)",
+              data: f,
+              pointRadius: 0,
+              tension: 0.2,
+              borderColor: "rgba(59, 130, 246, 1)",      /* azul */
+              backgroundColor: "rgba(59, 130, 246, 0.10)"
+            },
+            {
+              label: "Área entre a y b",
+              data: fShade,
+              pointRadius: 0,
+              tension: 0.2,
+              fill: true,
+              backgroundColor: "rgba(255, 153, 172, 0.55)", /* rosado sandía */
+              borderColor: "rgba(255, 153, 172, 1)"
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: true } },
+          scales: {
+            x: { title: { display: true, text: "x" } },
+            y: { title: { display: true, text: "densidad" }, beginAtZero: true }
+          }
+        }
       });
     }
 
     window.calcular = () => {
       try{
-        const n = toNumber(document.getElementById("n").value);
-        const p = toNumber(document.getElementById("p").value);
-        const x = toNumber(document.getElementById("x").value);
+        const mu = toNumber(document.getElementById("mu").value);
+        const sigma = toNumber(document.getElementById("sigma").value);
+        const a = toNumber(document.getElementById("a").value);
+        const b = toNumber(document.getElementById("b").value);
 
-        if(n<=0 || !Number.isInteger(n)) throw new Error("n debe ser entero positivo");
-        if(p<=0 || p>=1) throw new Error("p debe estar entre 0 y 1 (excl.)");
-        if(x<0 || x>n || !Number.isInteger(x)) throw new Error("x debe ser entero entre 0 y n");
+        if(sigma <= 0) throw new Error("σ debe ser > 0");
+        if(a > b) throw new Error("Debe cumplirse a ≤ b");
 
-        // PMF completa para graficar
-        const labels = [], pmf = [];
-        for(let k=0;k<=n;k++){ labels.push(k); pmf.push(binomialPMF(n,p,k)); }
-
-        const px = pmf[x];
-        const cdfLE = pmf.slice(0, x+1).reduce((a,b)=>a+b,0);
-        const cdfGE = pmf.slice(x).reduce((a,b)=>a+b,0);
+        const za = (a - mu) / sigma;
+        const zb = (b - mu) / sigma;
+        const pLEa = normalCDF(za);
+        const pLEb = normalCDF(zb);
+        const pBetween = normalBetween(mu, sigma, a, b);
+        const pGEb = 1 - pLEb;
 
         document.getElementById("resultado").innerHTML =
-          `<p>P(X=${x}) = <b>${px.toFixed(6)}</b></p>
-           <p>P(X ≤ ${x}) = <b>${cdfLE.toFixed(6)}</b></p>
-           <p>P(X ≥ ${x}) = <b>${cdfGE.toFixed(6)}</b></p>
-           <p class="mt-2 text-gray-700">Interpretación: En ${n} ensayos con p=${p}, la probabilidad de exactamente ${x} éxitos es ${(px*100).toFixed(2)}%.</p>`;
+          `<p>P(X ≤ ${a}) = <b>${pLEa.toFixed(6)}</b> (z=${za.toFixed(3)})</p>
+           <p>P(X ≤ ${b}) = <b>${pLEb.toFixed(6)}</b> (z=${zb.toFixed(3)})</p>
+           <p>P(${a} ≤ X ≤ ${b}) = <b>${pBetween.toFixed(6)}</b></p>
+           <p>P(X ≥ ${b}) = <b>${pGEb.toFixed(6)}</b></p>
+           <p class="mt-2 text-gray-700">
+             Estandarización: Z = (X−μ)/σ. Con μ=${mu} y σ=${sigma},
+             el intervalo [${a}, ${b}] corresponde a [${za.toFixed(2)}, ${zb.toFixed(2)}] en Z.
+           </p>`;
 
-        renderChart(labels, pmf.map(v=>Number(v.toFixed(6))));
+        render(mu, sigma, a, b);
       }catch(err){
-        document.getElementById("resultado").innerHTML = `<p class="text-red-600">${err.message}</p>`;
+        document.getElementById("resultado").innerHTML =
+          `<p class="text-red-600">${err.message}</p>`;
       }
     };
   </script>
 </head>
-<body class="bg-gray-50 text-gray-800">
-<body style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);"></body>
-  <header class="bg-indigo-600 text-white">
+
+<body class="bg-gray-50 text-gray-800"
+      style="background: linear-gradient(to bottom right, #8cbd8b, #1e3a8a);">
+
+  <header class="bg-green-600 text-white">
     <div class="max-w-5xl mx-auto p-5">
-      <h1 class="text-2xl md:text-3xl font-bold">Distribución Binomial</h1>
-      <p class="opacity-90">Casos “exactamente”, “a lo sumo” y “al menos”.</p>
+      <h1 class="text-2xl md:text-3xl font-bold">Distribución Normal (Z)</h1>
+      <p class="opacity-90">Propiedades, estandarización y cálculo de probabilidades.</p>
     </div>
   </header>
 
   <nav class="bg-white border-b">
     <div class="max-w-5xl mx-auto p-3 flex gap-2">
-      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="index.html">Inicio</a>
+      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./index.html">Inicio</a>
+      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./binomial.html">Binomial</a>
+      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./poisson.html">Poisson</a>
     </div>
   </nav>
 
   <main class="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-6">
+
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-xl font-semibold mb-3">Teoría breve</h2>
-      <p><b>X ~ Bin(n, p)</b>: número de éxitos en n ensayos independientes con probabilidad p.</p>
-      <ul class="list-disc pl-6 text-sm text-gray-700 mt-2">
-        <li>Media = n·p, Varianza = n·p·(1−p)</li>
-        <li>Exactamente x: PMF</li>
-        <li>A lo sumo x: Σ k=0..x P(X=k)</li>
-        <li>Al menos x: 1 − P(X ≤ x−1)</li>
+      <ul class="list-disc pl-6 text-sm text-gray-700 space-y-1">
+        <li>X ~ Normal(μ, σ): campana simétrica.</li>
+        <li>Estandarización: Z = (X − μ) / σ → Z ~ Normal(0,1).</li>
+        <li>P(a ≤ X ≤ b) = Φ((b−μ)/σ) − Φ((a−μ)/σ)</li>
+        <li>≈68% en [μ−σ, μ+σ], ≈95% en [μ−2σ, μ+2σ].</li>
       </ul>
     </section>
 
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-xl font-semibold mb-3">Cálculo</h2>
       <div class="grid grid-cols-2 gap-3">
-        <label class="text-sm">n (ensayos)
-          <input id="n" type="number" value="10" class="w-full mt-1 border rounded p-2">
+        <label class="text-sm">μ (media)
+          <input id="mu" type="number" value="100" class="w-full mt-1 border rounded p-2">
         </label>
-        <label class="text-sm">p (0–1)
-          <input id="p" type="number" step="0.01" value="0.5" class="w-full mt-1 border rounded p-2">
+        <label class="text-sm">σ (desv. estándar)
+          <input id="sigma" type="number" step="0.1" value="15" class="w-full mt-1 border rounded p-2">
         </label>
-        <label class="text-sm">x (éxitos)
-          <input id="x" type="number" value="3" class="w-full mt-1 border rounded p-2">
+        <label class="text-sm">a
+          <input id="a" type="number" value="90" class="w-full mt-1 border rounded p-2">
+        </label>
+        <label class="text-sm">b
+          <input id="b" type="number" value="120" class="w-full mt-1 border rounded p-2">
         </label>
       </div>
-      <button onclick="calcular()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular</button>
+
+      <!-- ⭐ BOTÓN NEGRO ⭐ -->
+      <button onclick="calcular()"
+              class="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition">
+        Calcular
+      </button>
+
       <div id="resultado" class="mt-4 text-sm"></div>
     </section>
 
@@ -101,6 +167,9 @@
       <h2 class="text-xl font-semibold mb-3">Gráfica</h2>
       <canvas id="chart" height="120"></canvas>
     </section>
+
   </main>
+
 </body>
 </html>
+

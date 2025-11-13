@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Distribución de Poisson</title>
+
   <!-- Tailwind y Chart.js por CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -15,29 +16,46 @@
     function renderChart(labels, data){
       const ctx = document.getElementById("chart").getContext("2d");
       if(chart) chart.destroy();
+
       chart = new Chart(ctx, {
         type: "bar",
-        data: { labels, datasets: [{ label: "P(X = x)", data }] },
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        data: {
+          labels,
+          datasets: [{
+            label: "P(X = x)",
+            data,
+            backgroundColor: "rgba(22, 101, 52, 0.5)",   // VERDE OSCURO SUAVE
+            borderColor: "rgba(22, 101, 52, 1)",         // VERDE OSCURO INTENSO
+            borderWidth: 2
+          }]
+        },
+        options: { 
+          responsive: true,
+          scales: { y: { beginAtZero: true } }
+        }
       });
     }
 
     function rangoGrafica(lambda, x){
-      // Rango recomendado: [0, max( x, floor(λ + 4√λ) )], acotado
       const maxTheo = Math.ceil(lambda + 4 * Math.sqrt(Math.max(lambda, 0)));
-      return Math.min(Math.max(x, maxTheo), 50); // no más de 50 barras
+      return Math.min(Math.max(x, maxTheo), 50);
     }
 
     window.calcular = () => {
       try{
         const lambda = toNumber(document.getElementById("lambda").value);
         const x = toNumber(document.getElementById("x").value);
+
         if(lambda <= 0) throw new Error("λ debe ser > 0");
         if(x < 0 || !Number.isInteger(x)) throw new Error("x debe ser entero ≥ 0");
 
         const maxK = rangoGrafica(lambda, x);
         const labels = [], pmf = [];
-        for(let k=0;k<=maxK;k++){ labels.push(k); pmf.push(poissonPMF(lambda,k)); }
+
+        for(let k=0;k<=maxK;k++){
+          labels.push(k);
+          pmf.push(poissonPMF(lambda,k));
+        }
 
         const px = poissonPMF(lambda, x);
         const cdfLE = poissonCDF(lambda, x);
@@ -47,21 +65,38 @@
           `<p>P(X = ${x}) = <b>${px.toFixed(6)}</b></p>
            <p>P(X ≤ ${x}) = <b>${cdfLE.toFixed(6)}</b></p>
            <p>P(X ≥ ${x}) = <b>${cdfGE.toFixed(6)}</b></p>
-           <p class="mt-2 text-gray-700">Interpretación: Con tasa promedio λ=${lambda}, la probabilidad de observar exactamente ${x} sucesos en el intervalo es ${(px*100).toFixed(2)}%.</p>`;
+           <p class="mt-2 text-gray-700">
+             Interpretación: Con tasa promedio λ=${lambda}, la probabilidad de observar exactamente ${x} sucesos
+             en el intervalo es ${(px*100).toFixed(2)}%.
+           </p>`;
 
-        renderChart(labels, pmf.map(v=>Number(v.toFixed(6))));
+        // 🔥 ORDENAR DEL MÁS PEQUEÑO AL MÁS GRANDE
+        const combinado = labels.map((k, i) => ({
+          k,
+          prob: Number(pmf[i].toFixed(6))
+        }));
+
+        combinado.sort((a, b) => a.prob - b.prob);
+
+        const labelsOrdenados = combinado.map(obj => obj.k);
+        const pmfOrdenado = combinado.map(obj => obj.prob);
+
+        renderChart(labelsOrdenados, pmfOrdenado);
+
       }catch(err){
-        document.getElementById("resultado").innerHTML = `<p class="text-red-600">${err.message}</p>`;
+        document.getElementById("resultado").innerHTML =
+          `<p class="text-red-600">${err.message}</p>`;
       }
     };
   </script>
 </head>
-<body class="bg-gray-50 text-gray-800">
-<body style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);"></body>
-  <header class="bg-indigo-600 text-white">
+
+<body class="bg-gray-50 text-gray-800" style="background: linear-gradient(to bottom right, #d5cc6b, #1341c2);">
+
+  <header class="bg-gree-600 text-white">
     <div class="max-w-5xl mx-auto p-5">
       <h1 class="text-2xl md:text-3xl font-bold">Distribución de Poisson</h1>
-      <p class="opacity-90">Aplicaciones en conteos por tiempo o espacio. Casos “exactamente”, “a lo sumo”, “al menos”.</p>
+      <p class="opacity-90">Aplicaciones en conteos por tiempo o espacio.</p>
     </div>
   </header>
 
@@ -73,22 +108,23 @@
   </nav>
 
   <main class="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-6">
+
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-xl font-semibold mb-3">Teoría breve</h2>
       <p class="mb-2">
-        <b>X ~ Poisson(λ)</b> modela el número de ocurrencias en un intervalo cuando los sucesos:
-        ocurren de manera independiente, con tasa promedio constante <b>λ</b>, y de a uno por vez.
+        <b>X ~ Poisson(λ)</b> modela el número de ocurrencias en un intervalo cuando los sucesos son independientes.
       </p>
       <ul class="list-disc pl-6 text-sm text-gray-700 space-y-1">
         <li><b>Media</b> = λ, <b>Varianza</b> = λ</li>
-        <li><b>Exactamente</b> x: PMF <i>P(X=x)=e^{-λ} λ^x / x!</i></li>
-        <li><b>A lo sumo</b> x: <i>P(X≤x)</i> (CDF)</li>
-        <li><b>Al menos</b> x: <i>1 − P(X≤x−1)</i></li>
+        <li><b>Exactamente x</b>: PMF <i>P(X=x)=e^{-λ} λ^x / x!</i></li>
+        <li><b>A lo sumo x</b>: <i>P(X≤x)</i> (CDF)</li>
+        <li><b>Al menos x</b>: <i>1 − P(X≤x−1)</i></li>
       </ul>
     </section>
 
     <section class="bg-white rounded-2xl shadow p-6">
       <h2 class="text-xl font-semibold mb-3">Cálculo</h2>
+
       <div class="grid grid-cols-2 gap-3">
         <label class="text-sm">λ (tasa promedio)
           <input id="lambda" type="number" step="0.1" value="4" class="w-full mt-1 border rounded p-2">
@@ -97,7 +133,15 @@
           <input id="x" type="number" value="2" class="w-full mt-1 border rounded p-2">
         </label>
       </div>
-      <button onclick="calcular()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular</button>
+
+      <!-- Botón negro plano -->
+      <button
+        onclick="calcular()"
+        class="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+      >
+        Calcular
+      </button>
+
       <div id="resultado" class="mt-4 text-sm"></div>
     </section>
 
@@ -105,6 +149,9 @@
       <h2 class="text-xl font-semibold mb-3">Gráfica</h2>
       <canvas id="chart" height="120"></canvas>
     </section>
+
   </main>
+
 </body>
 </html>
+

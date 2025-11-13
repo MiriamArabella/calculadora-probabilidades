@@ -9,12 +9,10 @@
   <script type="module">
     import { toNumber } from "./app.js?v=6";
 
-    // ============ Modo médico: prevalencia, sensibilidad, especificidad ============
-    // A = enfermo, B = test positivo
-    // prev = P(A), sens = P(B|A), esp = P(¬B|¬A)  => FPR = 1-esp = P(B|¬A)
-    // P(B) = sens*prev + (1-esp)*(1-prev)
-    // P(A|B) = sens*prev / P(B)
-    // P(¬A|B) = 1 - P(A|B)
+    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+    function pct(x){ return (x*100).toFixed(2) + "%"; }
+
+    // =================== MODO MÉDICO ===================
     window.calcBayesMedico = () => {
       const prev = clamp01(toNumber(document.getElementById("prev").value));
       const sens = clamp01(toNumber(document.getElementById("sens").value));
@@ -26,7 +24,6 @@
       const pAgB = pB > 0 ? (sens*prev)/pB : 0;
       const notA_gB = 1 - pAgB;
 
-      // Si N > 0, mostramos una matriz de confusión aproximada
       let matrixHTML = "";
       if(N > 0){
         const enfermos = Math.round(prev*N);
@@ -73,38 +70,37 @@
 
       document.getElementById("outMed").innerHTML =
         `<p><b>P(B)</b> = ${pB.toFixed(6)}</p>
-         <p><b>P(A|B)</b> (valor predictivo positivo) = ${pAgB.toFixed(6)}</p>
+         <p><b>P(A|B)</b> = ${pAgB.toFixed(6)}</p>
          <p><b>P(¬A|B)</b> = ${notA_gB.toFixed(6)}</p>
          <p class="text-sm mt-2 text-gray-700">
-           Interpretación: con una prevalencia de ${pct(prev)}, sensibilidad ${pct(sens)} y especificidad ${pct(esp)},
-           si el test sale positivo, la probabilidad de estar enfermo es ${pct(pAgB)}.
+           Con prevalencia ${pct(prev)}, sensibilidad ${pct(sens)}
+           y especificidad ${pct(esp)}, si el test da positivo,
+           la probabilidad real de estar enfermo es ${pct(pAgB)}.
          </p>
          ${matrixHTML}`;
     };
 
-    // ============ Modo directo: P(A), P(B), P(B|A) ============
-    // P(A|B) = P(B|A) P(A) / P(B)
+    // =================== MODO DIRECTO ===================
     window.calcBayesDirecto = () => {
       const pA   = clamp01(toNumber(document.getElementById("pA").value));
       const pB   = clamp01(toNumber(document.getElementById("pB").value));
       const pBgA = clamp01(toNumber(document.getElementById("pBgA").value));
+
       const pAgB = pB > 0 ? (pBgA*pA)/pB : 0;
 
       document.getElementById("outDir").innerHTML =
         `<p><b>P(A|B)</b> = ${pAgB.toFixed(6)}</p>
          <p class="text-sm mt-2 text-gray-700">
-           Esta es la probabilidad posterior de A con evidencia B usando Bayes.
+           Probabilidad posterior usando Bayes: actualiza P(A) con evidencia B.
          </p>`;
     };
-
-    function clamp01(x){ return Math.max(0, Math.min(1, x)); }
-    function pct(x){ return (x*100).toFixed(2) + "%"; }
   </script>
 </head>
 
-<body class="bg-gray-50 text-gray-800">
-<body style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);"></body>
-<header class="bg-indigo-600 text-white">
+<body class="bg-gray-50 text-gray-800"
+      style="background: linear-gradient(to bottom right, #829185, #79b37b);">
+
+<header class="bg-gree-600 text-white">
   <div class="max-w-5xl mx-auto p-5">
     <h1 class="text-2xl md:text-3xl font-bold">Teorema de Bayes</h1>
     <p>Interpretación y aplicaciones (diagnóstico, pruebas y confiabilidad).</p>
@@ -121,62 +117,104 @@
 </nav>
 
 <main class="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-6">
+
   <!-- Teoría -->
   <section class="bg-white rounded-2xl shadow p-6">
     <h2 class="text-xl font-semibold mb-3">Teoría breve</h2>
     <p class="text-sm leading-relaxed">
-      El <b>Teorema de Bayes</b> actualiza la probabilidad de una hipótesis (<i>A</i>)
-      con base en evidencia (<i>B</i>):
+      El <b>Teorema de Bayes</b> permite actualizar la probabilidad de una hipótesis A
+      a partir de una evidencia B:
     </p>
+
     <div class="bg-gray-100 text-center p-3 rounded-lg my-3 text-indigo-700 font-semibold">
       P(A|B) = [ P(B|A) × P(A) ] / P(B)
     </div>
+
     <ul class="list-disc pl-6 text-sm space-y-1">
-      <li><b>P(A)</b>: probabilidad previa (prevalencia, tasa base).</li>
-      <li><b>P(B|A)</b>: verosimilitud (ej. sensibilidad del test).</li>
+      <li><b>P(A)</b>: probabilidad previa.</li>
+      <li><b>P(B|A)</b>: verosimilitud.</li>
       <li><b>P(B)</b>: probabilidad total de la evidencia.</li>
-      <li><b>P(A|B)</b>: probabilidad posterior (actualizada).</li>
+      <li><b>P(A|B)</b>: probabilidad posterior.</li>
     </ul>
   </section>
 
-  <!-- Modo médico -->
+  <!-- Modo Médico -->
   <section class="bg-white rounded-2xl shadow p-6">
-    <h2 class="text-xl font-semibold mb-3">Modo médico (prevalencia/sensibilidad/especificidad)</h2>
+    <h2 class="text-xl font-semibold mb-3">Modo médico</h2>
+
     <div class="grid grid-cols-4 gap-3">
       <label class="text-sm col-span-2">Prevalencia P(A)
         <input id="prev" type="number" step="0.001" value="0.01" class="w-full mt-1 border rounded p-2">
       </label>
+
       <label class="text-sm col-span-1">Sensibilidad P(B|A)
         <input id="sens" type="number" step="0.001" value="0.90" class="w-full mt-1 border rounded p-2">
       </label>
+
       <label class="text-sm col-span-1">Especificidad P(¬B|¬A)
         <input id="esp" type="number" step="0.001" value="0.95" class="w-full mt-1 border rounded p-2">
       </label>
-      <label class="text-sm col-span-2">Tamaño N (opcional matriz)
+
+      <label class="text-sm col-span-2">Tamaño N (opcional)
         <input id="N" type="number" step="1" value="1000" class="w-full mt-1 border rounded p-2">
       </label>
     </div>
-    <button onclick="calcBayesMedico()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular</button>
+
+    <!-- BOTÓN NEGRO -->
+    <button
+      onclick="calcBayesMedico()"
+      class="mt-4 px-5 py-2.5 
+             bg-gradient-to-r from-gray-900 via-black to-gray-800 
+             text-white font-semibold 
+             rounded-xl 
+             shadow-lg shadow-black/40
+             hover:shadow-black/70 hover:-translate-y-0.5 
+             hover:brightness-110
+             transition-all duration-200"
+    >
+      Calcular
+    </button>
+
     <div id="outMed" class="mt-4 text-sm"></div>
   </section>
 
   <!-- Modo directo -->
   <section class="bg-white rounded-2xl shadow p-6 md:col-span-2">
-    <h2 class="text-xl font-semibold mb-3">Modo directo (P(A), P(B), P(B|A))</h2>
+    <h2 class="text-xl font-semibold mb-3">Modo directo</h2>
+
     <div class="grid grid-cols-3 gap-3">
       <label class="text-sm">P(A)
         <input id="pA" type="number" step="0.001" value="0.01" class="w-full mt-1 border rounded p-2">
       </label>
+
       <label class="text-sm">P(B)
         <input id="pB" type="number" step="0.001" value="0.05" class="w-full mt-1 border rounded p-2">
       </label>
+
       <label class="text-sm">P(B|A)
         <input id="pBgA" type="number" step="0.001" value="0.90" class="w-full mt-1 border rounded p-2">
       </label>
     </div>
-    <button onclick="calcBayesDirecto()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular</button>
+
+    <!-- BOTÓN NEGRO -->
+    <button
+      onclick="calcBayesDirecto()"
+      class="mt-4 px-5 py-2.5 
+             bg-gradient-to-r from-gray-900 via-black to-gray-800 
+             text-white font-semibold 
+             rounded-xl 
+             shadow-lg shadow-black/40
+             hover:shadow-black/70 hover:-translate-y-0.5 
+             hover:brightness-110
+             transition-all duration-200"
+    >
+      Calcular
+    </button>
+
     <div id="outDir" class="mt-4 text-sm"></div>
   </section>
+
 </main>
+
 </body>
 </html>

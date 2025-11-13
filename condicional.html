@@ -10,9 +10,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
-<body class="text-gray-800" style="background: linear-gradient(to bottom right, #6366f1, #1e3a8a);">
+<body class="text-gray-800" style="background: linear-gradient(to bottom right, #7bbe91, #0c2468);">
   <!-- Encabezado -->
-  <header class="bg-indigo-600 text-white">
+  <header class="bg-green-600 text-white">
     <div class="max-w-5xl mx-auto p-5">
       <h1 class="text-2xl md:text-3xl font-bold">Probabilidad Condicional y Dependencia</h1>
       <p class="opacity-90">Aplicación del teorema P(A|B) y revisión de independencia.</p>
@@ -55,7 +55,13 @@
           <input id="pAB" type="number" step="0.000001" value="0.12" class="w-full mt-1 border rounded p-2" />
         </label>
       </div>
-      <button onclick="calc()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular</button>
+      <!-- BOTÓN NEGRO PLANO -->
+      <button
+        onclick="calc()"
+        class="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+      >
+        Calcular
+      </button>
       <div id="out" class="mt-4 text-sm"></div>
       <!-- Gráfica de cálculo directo -->
       <canvas id="chartDirect" class="mt-4"></canvas>
@@ -79,7 +85,13 @@
           <input id="nNoA_noB" type="number" value="40" class="w-full mt-1 border rounded p-2" />
         </label>
       </div>
-      <button onclick="calcTabla()" class="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg">Calcular desde tabla</button>
+      <!-- BOTÓN NEGRO PLANO -->
+      <button
+        onclick="calcTabla()"
+        class="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+      >
+        Calcular desde tabla
+      </button>
       <div id="outTabla" class="mt-4 text-sm"></div>
       <!-- Gráfica de tabla -->
       <canvas id="chartTabla" class="mt-4"></canvas>
@@ -156,7 +168,8 @@
 
       const N = nAB + nA_noB + nNoA_B + nNoA_noB;
       if (N <= 0) {
-        document.getElementById("outTabla").innerHTML = `<p class="text-red-600">La suma de conteos debe ser &gt; 0.</p>`;
+        document.getElementById("outTabla").innerHTML =
+          `<p class="text-red-600">La suma de conteos debe ser &gt; 0.</p>`;
         return;
       }
 
