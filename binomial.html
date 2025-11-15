@@ -3,173 +3,168 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Distribución Normal (Z)</title>
-
+  <title>Distribución Binomial</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <script type="module">
-    import { toNumber, normalCDF, normalBetween } from "./app.js?v=2";
-    let chart;
-
-    // Densidad normal
-    function normalPDF(x, mu, sigma){
-      const z = (x - mu)/sigma;
-      return Math.exp(-0.5*z*z) / (sigma*Math.sqrt(2*Math.PI));
-    }
-
-    function render(mu, sigma, a, b){
-      const ctx = document.getElementById("chart").getContext("2d");
-      if(chart) chart.destroy();
-
-      // Rango μ ± 4σ
-      const xMin = mu - 4*sigma, xMax = mu + 4*sigma, steps = 200;
-      const xs = [], f = [], fShade = [];
-
-      for(let i=0;i<=steps;i++){
-        const x = xMin + (i/steps)*(xMax - xMin);
-        const y = normalPDF(x, mu, sigma);
-        xs.push(Number(x.toFixed(2)));
-        f.push(Number(y.toFixed(6)));
-
-        // sombreado entre a y b
-        fShade.push((x>=a && x<=b) ? Number(y.toFixed(6)) : null);
-      }
-
-      chart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: xs,
-          datasets: [
-            {
-              label: "f(x)",
-              data: f,
-              pointRadius: 0,
-              tension: 0.2,
-              borderColor: "rgba(59, 130, 246, 1)",      /* azul */
-              backgroundColor: "rgba(59, 130, 246, 0.10)"
-            },
-            {
-              label: "Área entre a y b",
-              data: fShade,
-              pointRadius: 0,
-              tension: 0.2,
-              fill: true,
-              backgroundColor: "rgba(255, 153, 172, 0.55)", /* rosado sandía */
-              borderColor: "rgba(255, 153, 172, 1)"
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: true } },
-          scales: {
-            x: { title: { display: true, text: "x" } },
-            y: { title: { display: true, text: "densidad" }, beginAtZero: true }
-          }
-        }
-      });
-    }
-
-    window.calcular = () => {
-      try{
-        const mu = toNumber(document.getElementById("mu").value);
-        const sigma = toNumber(document.getElementById("sigma").value);
-        const a = toNumber(document.getElementById("a").value);
-        const b = toNumber(document.getElementById("b").value);
-
-        if(sigma <= 0) throw new Error("σ debe ser > 0");
-        if(a > b) throw new Error("Debe cumplirse a ≤ b");
-
-        const za = (a - mu) / sigma;
-        const zb = (b - mu) / sigma;
-        const pLEa = normalCDF(za);
-        const pLEb = normalCDF(zb);
-        const pBetween = normalBetween(mu, sigma, a, b);
-        const pGEb = 1 - pLEb;
-
-        document.getElementById("resultado").innerHTML =
-          `<p>P(X ≤ ${a}) = <b>${pLEa.toFixed(6)}</b> (z=${za.toFixed(3)})</p>
-           <p>P(X ≤ ${b}) = <b>${pLEb.toFixed(6)}</b> (z=${zb.toFixed(3)})</p>
-           <p>P(${a} ≤ X ≤ ${b}) = <b>${pBetween.toFixed(6)}</b></p>
-           <p>P(X ≥ ${b}) = <b>${pGEb.toFixed(6)}</b></p>
-           <p class="mt-2 text-gray-700">
-             Estandarización: Z = (X−μ)/σ. Con μ=${mu} y σ=${sigma},
-             el intervalo [${a}, ${b}] corresponde a [${za.toFixed(2)}, ${zb.toFixed(2)}] en Z.
-           </p>`;
-
-        render(mu, sigma, a, b);
-      }catch(err){
-        document.getElementById("resultado").innerHTML =
-          `<p class="text-red-600">${err.message}</p>`;
-      }
-    };
-  </script>
 </head>
 
 <body class="bg-gray-50 text-gray-800"
-      style="background: linear-gradient(to bottom right, #8cbd8b, #1e3a8a);">
+      style="background: linear-gradient(to bottom right, #4ade80, #1d4ed8);">
 
-  <header class="bg-green-600 text-white">
-    <div class="max-w-5xl mx-auto p-5">
-      <h1 class="text-2xl md:text-3xl font-bold">Distribución Normal (Z)</h1>
-      <p class="opacity-90">Propiedades, estandarización y cálculo de probabilidades.</p>
-    </div>
+  <!-- ENCABEZADO -->
+  <header class="bg-green-700 text-white p-5">
+    <h1 class="text-2xl md:text-3xl font-bold text-center">
+      Distribución Binomial
+    </h1>
+    <p class="text-center text-sm md:text-base">
+      Características, cálculo de probabilidades y visualización.
+    </p>
   </header>
 
-  <nav class="bg-white border-b">
-    <div class="max-w-5xl mx-auto p-3 flex gap-2">
-      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./index.html">Inicio</a>
-      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./binomial.html">Binomial</a>
-      <a class="px-3 py-2 rounded hover:bg-indigo-50" href="./poisson.html">Poisson</a>
-    </div>
+  <!-- NAVEGACIÓN -->
+  <nav class="bg-white shadow-md">
+    <ul class="flex justify-center gap-6 p-4 font-semibold">
+      <li><a href="index.html" class="hover:underline">Inicio</a></li>
+
+    </ul>
   </nav>
 
-  <main class="max-w-5xl mx-auto p-6 grid md:grid-cols-2 gap-6">
+  <main class="max-w-5xl mx-auto p-6 space-y-8">
 
-    <section class="bg-white rounded-2xl shadow p-6">
-      <h2 class="text-xl font-semibold mb-3">Teoría breve</h2>
-      <ul class="list-disc pl-6 text-sm text-gray-700 space-y-1">
-        <li>X ~ Normal(μ, σ): campana simétrica.</li>
-        <li>Estandarización: Z = (X − μ) / σ → Z ~ Normal(0,1).</li>
-        <li>P(a ≤ X ≤ b) = Φ((b−μ)/σ) − Φ((a−μ)/σ)</li>
-        <li>≈68% en [μ−σ, μ+σ], ≈95% en [μ−2σ, μ+2σ].</li>
+    <!-- TEORÍA -->
+    <section class="bg-white p-6 rounded-2xl shadow-md">
+      <h2 class="text-xl font-bold mb-3">Teoría breve</h2>
+      <ul class="list-disc pl-5 space-y-2">
+        <li>X ~ Bin(n, p): número de éxitos en n ensayos.</li>
+        <li>n: número de intentos independientes.</li>
+        <li>p: probabilidad de éxito en cada intento (0 &le; p &le; 1).</li>
+        <li>P(X = k) = C(n,k) · p<sup>k</sup> (1−p)<sup>n−k</sup></li>
+        <li>Media: E[X] = n·p</li>
+        <li>Varianza: Var(X) = n·p·(1−p)</li>
       </ul>
     </section>
 
-    <section class="bg-white rounded-2xl shadow p-6">
-      <h2 class="text-xl font-semibold mb-3">Cálculo</h2>
-      <div class="grid grid-cols-2 gap-3">
-        <label class="text-sm">μ (media)
-          <input id="mu" type="number" value="100" class="w-full mt-1 border rounded p-2">
-        </label>
-        <label class="text-sm">σ (desv. estándar)
-          <input id="sigma" type="number" step="0.1" value="15" class="w-full mt-1 border rounded p-2">
-        </label>
-        <label class="text-sm">a
-          <input id="a" type="number" value="90" class="w-full mt-1 border rounded p-2">
-        </label>
-        <label class="text-sm">b
-          <input id="b" type="number" value="120" class="w-full mt-1 border rounded p-2">
-        </label>
+    <!-- CÁLCULO -->
+    <section class="bg-white p-6 rounded-2xl shadow-md">
+      <h2 class="text-xl font-bold mb-4">Cálculo</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="font-semibold">n (ensayos)</label>
+          <input id="n" type="number" class="w-full p-2 border rounded-md" placeholder="Ej: 10">
+        </div>
+
+        <div>
+          <label class="font-semibold">p (prob. éxito)</label>
+          <input id="p" type="number" step="0.01" class="w-full p-2 border rounded-md" placeholder="Ej: 0.3">
+        </div>
+
+        <div>
+          <label class="font-semibold">x (éxitos)</label>
+          <input id="x" type="number" class="w-full p-2 border rounded-md" placeholder="Ej: 4">
+        </div>
       </div>
 
-      <!-- ⭐ BOTÓN NEGRO ⭐ -->
-      <button onclick="calcular()"
-              class="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition">
+      <button id="btnCalcular" class="mt-5 bg-black text-white px-6 py-2 rounded-md">
         Calcular
       </button>
 
-      <div id="resultado" class="mt-4 text-sm"></div>
+      <!-- Resultados -->
+      <div class="mt-4">
+        <p id="resultadoPrincipal" class="font-semibold text-lg"></p>
+        <div id="resultadosTexto" class="mt-2 space-y-1 text-sm md:text-base"></div>
+      </div>
     </section>
 
-    <section class="bg-white rounded-2xl shadow p-6 md:col-span-2">
-      <h2 class="text-xl font-semibold mb-3">Gráfica</h2>
-      <canvas id="chart" height="120"></canvas>
+    <!-- GRÁFICA -->
+    <section class="bg-white p-6 rounded-2xl shadow-md">
+      <h2 class="text-xl font-bold mb-3">Gráfica</h2>
+      <canvas id="grafica" style="max-height: 350px;"></canvas>
     </section>
 
   </main>
 
+  <!-- SCRIPT -->
+  <script>
+    // Escucha del botón
+    document.getElementById("btnCalcular").addEventListener("click", () => {
+      const n = parseInt(document.getElementById("n").value);
+      const p = parseFloat(document.getElementById("p").value);
+      const x = parseInt(document.getElementById("x").value);
+
+      const resPrincipal = document.getElementById("resultadoPrincipal");
+      const resTexto = document.getElementById("resultadosTexto");
+
+      // Validaciones básicas
+      if (isNaN(n) || isNaN(p) || isNaN(x) || n < 0 || p < 0 || p > 1 || x < 0 || x > n) {
+        resPrincipal.textContent = "Ingrese valores válidos (0 ≤ p ≤ 1 y 0 ≤ x ≤ n).";
+        resTexto.innerHTML = "";
+        return;
+      }
+
+      // Funciones auxiliares
+      function factorial(num) {
+        return num <= 1 ? 1 : num * factorial(num - 1);
+      }
+
+      function comb(n, k) {
+        return factorial(n) / (factorial(k) * factorial(n - k));
+      }
+
+      // Valores de la función de probabilidad
+      const xs = Array.from({ length: n + 1 }, (_, i) => i);
+      const probs = xs.map(k =>
+        comb(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k)
+      );
+
+      const pExacta = probs[x];
+      const pMenorIgual = probs.slice(0, x + 1).reduce((a, b) => a + b, 0);
+      const pMayorIgual = probs.slice(x).reduce((a, b) => a + b, 0);
+
+      // Mostrar resultados (formato distinto al de tu amigo)
+      resPrincipal.textContent = `Resultados para X ~ Bin(${n}, ${p}):`;
+
+      resTexto.innerHTML = `
+        <p><span class="font-semibold">Exactamente ${x} éxitos:</span> P(X = ${x}) = ${pExacta.toFixed(6)}</p>
+        <p><span class="font-semibold">A lo sumo ${x} éxitos:</span> P(X ≤ ${x}) = ${pMenorIgual.toFixed(6)}</p>
+        <p><span class="font-semibold">Al menos ${x} éxitos:</span> P(X ≥ ${x}) = ${pMayorIgual.toFixed(6)}</p>
+        <p class="mt-2">
+          <span class="font-semibold">Interpretación:</span>
+          en ${n} ensayos con probabilidad de éxito p = ${p.toFixed(2)},
+          la probabilidad de obtener exactamente ${x} éxitos es
+          ${(pExacta * 100).toFixed(2)}%.
+        </p>
+      `;
+
+      // GRÁFICA tipo curva con relleno
+      const ctx = document.getElementById("grafica").getContext("2d");
+      if (window.binChart) window.binChart.destroy();
+
+      window.binChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: xs,
+          datasets: [{
+            label: "Distribución Binomial",
+            data: probs,
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          scales: {
+            x: {
+              title: { display: true, text: "x" }
+            },
+            y: {
+              title: { display: true, text: "probabilidad" }
+            }
+          }
+        }
+      });
+    });
+  </script>
+
 </body>
 </html>
-
